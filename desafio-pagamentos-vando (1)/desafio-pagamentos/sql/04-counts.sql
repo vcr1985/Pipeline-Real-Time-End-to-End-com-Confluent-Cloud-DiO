@@ -1,0 +1,1 @@
+SELECT 'customers' AS tabela,count(*) FROM customers UNION ALL SELECT 'accounts',count(*) FROM accounts UNION ALL SELECT 'cards',count(*) FROM cards UNION ALL SELECT 'merchants',count(*) FROM merchants UNION ALL SELECT 'transactions',count(*) FROM transactions;
