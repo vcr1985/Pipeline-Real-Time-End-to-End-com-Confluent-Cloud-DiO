@@ -1,0 +1,9 @@
+
+.venv/
+__pycache__/
+*.pyc
+alerts.db*
+*.bak
+.env
+.env.*
+!.env.example

@@ -1,37 +1,98 @@
--- MODELO: adaptar depois de SHOW CREATE TABLE nos tópicos inferidos.
--- Não execute antes de conferir before/after, PK, DECIMAL e atributo temporal.
-SET 'sql.tables.scan.idle-timeout' = '5s';
--- Contrato necessário:
--- desafio.accounts: id PK NOT ENFORCED; customer_id, status, balance; $rowtime.
--- desafio.transactions: id PK NOT ENFORCED; account_id, card_id, merchant_id,
--- amount DECIMAL(15,2), event_time TIMESTAMP_LTZ(3), $rowtime.
--- transactions_insert: APPEND, exclusivamente envelopes op='c' (e op='r'
--- apenas se houver estratégia explícita para snapshot). Preservar rowtime.
--- Não aplique MATCH_RECOGNIZE sobre a tabela CDC upsert diretamente.
+-- Pipeline validado em 05/10/2026.
+-- Catalog: desafio-final | Database: desafio-basic.
+-- Executar cada statement separadamente no Flink.
+-- Os INSERTs sao jobs continuos; evitar iniciar duplicados.
+-- Enriquecimento temporal integrado ainda pendente.
 
--- Temporal join: publicar em sink APPEND quando a entrada transactions_insert
--- for APPEND e o planner confirmar o changelog do resultado.
-INSERT INTO `desafio.payments.enriched`
-SELECT t.id, t.card_id, t.amount, a.customer_id, a.status, t.`$rowtime`
-FROM transactions_insert AS t
-JOIN `desafio.accounts` FOR SYSTEM_TIME AS OF t.`$rowtime` AS a
-ON t.account_id = a.id;
-
--- O DDL dos sinks deve casar exatamente com colunas/tipos deste SELECT.
-INSERT INTO `desafio.fraud.detected`
-SELECT card_id, first_id, last_id, total, first_time, last_time, 'RULE_VELOCITY'
-FROM `desafio.payments.enriched`
-MATCH_RECOGNIZE (
- PARTITION BY card_id
- ORDER BY `$rowtime`
- MEASURES FIRST(T.id) AS first_id, LAST(T.id) AS last_id,
- COUNT(T.id) AS total, FIRST(T.`$rowtime`) AS first_time,
- LAST(T.`$rowtime`) AS last_time
- ONE ROW PER MATCH
- AFTER MATCH SKIP PAST LAST ROW
- PATTERN (T{3,}?) WITHIN INTERVAL '60' SECOND
- DEFINE T AS T.amount > 0
+CREATE TABLE `desafio-pagamentos.accounts-normalized` (
+  id BIGINT NOT NULL,
+  customer_id BIGINT NOT NULL,
+  status STRING NOT NULL,
+  balance DECIMAL(15,2) NOT NULL,
+  PRIMARY KEY (id) NOT ENFORCED
+) WITH (
+  'changelog.mode' = 'upsert',
+  'key.format' = 'avro-registry',
+  'value.format' = 'avro-registry',
+  'kafka.cleanup-policy' = 'compact'
 );
--- ORDER BY $rowtime mede tempo de ingestão. Para tempo de negócio, definir
--- event_time como atributo de rowtime com WATERMARK nas tabelas apropriadas.
--- Explicar essa escolha e atrasos na entrega.
+
+INSERT INTO `desafio-pagamentos.accounts-normalized`
+SELECT id, customer_id, status, balance
+FROM `desafio-pagamentos.public.accounts`;
+
+CREATE TABLE `desafio-pagamentos.transaction-events` (
+  card_id BIGINT NOT NULL,
+  id BIGINT NOT NULL,
+  account_id BIGINT NOT NULL,
+  merchant_id BIGINT NOT NULL,
+  amount DECIMAL(15,2) NOT NULL,
+  event_time STRING NOT NULL,
+  event_ts TIMESTAMP_LTZ(3),
+  WATERMARK FOR event_ts AS event_ts - INTERVAL '5' SECOND
+)
+DISTRIBUTED BY HASH(card_id) INTO 1 BUCKETS
+WITH (
+  'changelog.mode' = 'append',
+  'key.format' = 'avro-registry',
+  'value.format' = 'avro-registry',
+  'kafka.cleanup-policy' = 'delete',
+  'kafka.retention.time' = '7 d'
+);
+
+INSERT INTO `desafio-pagamentos.transaction-events`
+(card_id, id, account_id, merchant_id, amount, event_time, event_ts)
+SELECT
+  card_id, id, account_id, merchant_id, amount, event_time,
+  CAST(
+    TO_TIMESTAMP_LTZ(
+      event_time,
+      'yyyy-MM-dd''T''HH:mm:ss.SSSSSS''Z''',
+      'UTC'
+    ) AS TIMESTAMP_LTZ(3)
+  )
+FROM TO_CHANGELOG(
+  input => TABLE `desafio-pagamentos.public.transactions`,
+  op_mapping => MAP['INSERT', 'I']
+);
+-- Este fluxo considera insercoes; updates e deletes nao entram.
+
+CREATE TABLE `desafio.fraud.detected` (
+  card_id BIGINT,
+  primeira_transacao BIGINT,
+  ultima_transacao BIGINT,
+  account_id BIGINT,
+  quantidade BIGINT,
+  valor_total DECIMAL(38,2),
+  inicio TIMESTAMP_LTZ(3),
+  fim TIMESTAMP_LTZ(3)
+)
+DISTRIBUTED BY HASH(card_id) INTO 1 BUCKETS
+WITH (
+  'changelog.mode' = 'append',
+  'key.format' = 'avro-registry',
+  'value.format' = 'avro-registry',
+  'kafka.cleanup-policy' = 'delete',
+  'kafka.retention.time' = '7 d'
+);
+
+INSERT INTO `desafio.fraud.detected`
+SELECT card_id, primeira_transacao, ultima_transacao,
+       account_id, quantidade, valor_total, inicio, fim
+FROM `desafio-pagamentos.transaction-events`
+MATCH_RECOGNIZE (
+  PARTITION BY card_id
+  ORDER BY event_ts
+  MEASURES
+    FIRST(T.id) AS primeira_transacao,
+    LAST(T.id) AS ultima_transacao,
+    LAST(T.account_id) AS account_id,
+    COUNT(T.id) AS quantidade,
+    SUM(T.amount) AS valor_total,
+    FIRST(T.event_ts) AS inicio,
+    LAST(T.event_ts) AS fim
+  ONE ROW PER MATCH
+  AFTER MATCH SKIP PAST LAST ROW
+  PATTERN (T{3,}?) WITHIN INTERVAL '60' SECOND
+  DEFINE T AS T.amount > 0
+);

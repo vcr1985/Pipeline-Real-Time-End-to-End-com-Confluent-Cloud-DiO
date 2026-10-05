@@ -26,3 +26,28 @@ Depois configurar login e senha privada e concluir a substituição pelo nome cd
 
 A região Ohio pertence ao projeto Neon atual; o enunciado pede AWS us-east-1 para o cluster Confluent. Não declarar as duas regiões como iguais.
 Senhas, arquivos .env, strings de conexão e configurações renderizadas permanecem privados.
+
+## Atualização — 05/10/2026
+- Confluent: environment desafio-final; cluster Basic desafio-basic, AWS us-east-1.
+- CDC: eventos de criação e atualização recebidos nos tópicos.
+- Corrigidas as permissões do tópico heartbeat do conector.
+- Flink: normalização de contas, fluxo de transações e detecção de três transações positivas em até 60 segundos funcionando.
+- Regra de fraude usa event_ts com precisão de milissegundos e watermark de 5 segundos.
+- Consumidor Python: autenticação Kafka e leitura Avro funcionando.
+- Schema Registry: DeveloperRead nos subjects desafio.fraud.detected-key e desafio.fraud.detected-value.
+- card_id recuperado da chave Avro; demais campos recuperados do valor.
+- SQLite: alertas persistidos antes do commit do offset.
+- Reinício do consumidor não repetiu o alerta já processado.
+- Testes positivos: 900101–900103 e 900201–900203; três transações, total 60.00 em cada alerta.
+- Teste negativo: duas transações positivas do cartão 2 não geraram alerta durante a observação.
+- SQLite confirmou duas chaves de alerta distintas, sem duplicação dessas chaves.
+
+### Pendências atuais
+- Atualizar SQL e README para refletir a implementação executada.
+- Conferir novamente os privilégios finais do usuário CDC.
+- Concluir contratos, compatibilidade de schemas e tags.
+- Validar enriquecimento temporal integrado à saída final.
+- Registrar métricas, custos e procedimento de teardown.
+- Conferir scripts de setup e teardown.
+
+As pendências do registro de 03/10 são históricas; usar esta atualização como ponto de retomada.

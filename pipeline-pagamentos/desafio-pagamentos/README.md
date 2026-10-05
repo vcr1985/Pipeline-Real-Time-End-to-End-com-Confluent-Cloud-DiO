@@ -1,10 +1,10 @@
 # Desafio Final — Pipeline de pagamentos
 **Autor: Vando Ramos**
 
-Base de implementação para IBM/DIO. Status: em desenvolvimento. Banco Neon preparado na sessão guiada; pipeline cloud ainda NÃO executado nem validado ponta a ponta. A entrega só fica concluída após capturar as evidências reais e completar o provisionamento automatizado.
+Implementação IBM/DIO em desenvolvimento. Fluxo Neon → CDC → Kafka → Flink → consumidor Python validado em 05/10/2026, com alertas persistidos no SQLite. Permanecem pendentes enriquecimento temporal integrado, contratos e tags, métricas, documentação e automação de setup/teardown.
 
 ## Progresso da sessão
-As cinco tabelas foram criadas e as contagens conferidas: 200 clientes, 240 contas, 320 cartões, 60 comerciantes e 2000 transações. A publicação `desafio_pub` foi conferida com cinco tabelas. Criamos `cdc_restrito` por SQL com REPLICATION e concedemos SELECT nas cinco tabelas. A consulta de verificação das permissões ainda está pendente, assim como login, senha e adoção do nome final `cdc_user`.
+Cinco tabelas e publicação desafio_pub configuradas no Neon. Testes positivos geraram dois alertas de três transações, total 60.00 cada. O teste com duas transações positivas não gerou alerta durante a observação. O consumidor retomou sem repetir o alerta processado. Histórico e pendências em docs/PROGRESSO.md.
 
 Veja [docs/PROGRESSO.md](docs/PROGRESSO.md) para retomar do ponto correto. As confirmações são da sessão guiada; as evidências exportadas devem ser anexadas antes da entrega final.
 
