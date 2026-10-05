@@ -68,3 +68,9 @@ As pendências do registro de 03/10 são históricas; usar esta atualização co
 - Política final restaurada para BACKWARD.
 - Evidência: docs/evidencias/compatibilidade.txt.
 - Schemas do CDC não foram alterados por esse teste.
+
+## Governança — 05/10/2026
+- Schema customers: campos name e email com tag PII; Schema ID 100020.
+- Schema cards: campo token com tag PCI, confirmado no JSON salvo.
+- Conector desafio-postgres-cdc conferido após as alterações, sem erro informado.
+- Tags classificam os dados; não criptografam nem bloqueiam acesso por si só.
