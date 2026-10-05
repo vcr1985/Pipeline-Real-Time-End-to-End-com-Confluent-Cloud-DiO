@@ -6,7 +6,11 @@ root=os.environ['SR_URL'].rstrip('/')
 auth=base64.b64encode((os.environ['SR_KEY']+':'+os.environ['SR_SECRET']).encode()).decode()
 def call(method,path,obj):
  req=urllib.request.Request(root+path,json.dumps(obj).encode(),method=method,headers={'Authorization':'Basic '+auth,'Content-Type':'application/vnd.schemaregistry.v1+json'})
- with urllib.request.urlopen(req,timeout=30) as f:return json.load(f)
+ try:
+  with urllib.request.urlopen(req,timeout=30) as f:return json.load(f)
+ except urllib.error.HTTPError as e:
+  print("DETALHE DO ERRO:", e.read().decode())
+  raise
 def schema(name):return {'schemaType':'AVRO','schema':Path('schemas/'+name).read_text()}
 print(call('PUT','/config/'+subject,{'compatibility':'BACKWARD'}))
 print(call('POST','/subjects/'+subject+'/versions',schema('payment-v1.avsc')))

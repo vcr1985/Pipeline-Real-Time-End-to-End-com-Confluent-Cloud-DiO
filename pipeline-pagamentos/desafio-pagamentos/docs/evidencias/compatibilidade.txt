@@ -1,0 +1,8 @@
+{'compatibility': 'BACKWARD'}
+{'id': 100019}
+payment-v2-default.avsc {'is_compatible': True, 'messages': []}
+payment-v2-incompatible.avsc {'is_compatible': False, 'messages': ['{errorType:"READER_FIELD_MISSING_DEFAULT_VALUE", description:"The field \'channel\' at path \'/fields/4\' in the new schema has no default value and is missing in the old schema", additionalInfo:"channel"}', '{oldSchemaVersion: 1}', '{oldSchema: \'{"type":"record","name":"Payment","namespace":"com.bootcamp.payments","fields":[{"name":"id","type":"long"},{"name":"card_id","type":"long","confluent:tags":["PCI"]},{"name":"amount","type":{"type":"bytes","logicalType":"decimal","precision":15,"scale":2}},{"name":"event_time","type":{"type":"long","logicalType":"timestamp-millis"}}]}\'}', "{validateFields: 'true', compatibility: 'BACKWARD'}"]}
+payment-v2-remove.avsc {'is_compatible': True, 'messages': []}
+{'compatibility': 'FORWARD'}
+FORWARD: remoção {'is_compatible': False, 'messages': ['{errorType:"READER_FIELD_MISSING_DEFAULT_VALUE", description:"The field \'card_id\' at path \'/fields/1\' in the old schema has no default value and is missing in the new schema", additionalInfo:"card_id"}', '{oldSchemaVersion: 1}', '{oldSchema: \'{"type":"record","name":"Payment","namespace":"com.bootcamp.payments","fields":[{"name":"id","type":"long"},{"name":"card_id","type":"long","confluent:tags":["PCI"]},{"name":"amount","type":{"type":"bytes","logicalType":"decimal","precision":15,"scale":2}},{"name":"event_time","type":{"type":"long","logicalType":"timestamp-millis"}}]}\'}', "{validateFields: 'true', compatibility: 'FORWARD'}"]}
+{'compatibility': 'BACKWARD'}

@@ -51,3 +51,20 @@ Senhas, arquivos .env, strings de conexão e configurações renderizadas perman
 - Conferir scripts de setup e teardown.
 
 As pendências do registro de 03/10 são históricas; usar esta atualização como ponto de retomada.
+
+### Verificação do usuário CDC — 05/10/2026
+- cdc_user: LOGIN e REPLICATION habilitados.
+- SUPERUSER, CREATEDB, CREATEROLE e BYPASSRLS desabilitados.
+- SELECT permitido nas cinco tabelas; INSERT, UPDATE e DELETE negados.
+- CONNECT em neondb e USAGE em public permitidos; CREATE em public negado.
+- Consulta de associação a grupos executada; nenhuma linha informada.
+- sql/09-verify-cdc-restrito.sql atualizado para consultar cdc_user.
+
+### Compatibilidade Avro — 05/10/2026
+- Subject de teste: desafio-contract-payment-value; schema v1 ID 100019.
+- Tag PCI criada; schema v1 registrado com PCI no campo card_id.
+- BACKWARD: adicionar channel com default passou; sem default foi rejeitado.
+- Remover card_id passou em BACKWARD e foi rejeitado em FORWARD.
+- Política final restaurada para BACKWARD.
+- Evidência: docs/evidencias/compatibilidade.txt.
+- Schemas do CDC não foram alterados por esse teste.
