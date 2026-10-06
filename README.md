@@ -1,5 +1,14 @@
 # Pipeline de pagamentos em tempo real
 
+![Python](https://img.shields.io/badge/Python-3776AB?style=for-the-badge&logo=python&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+![Kafka](https://img.shields.io/badge/Apache_Kafka-231F20?style=for-the-badge&logo=apachekafka&logoColor=white)
+![Flink](https://img.shields.io/badge/Apache_Flink-E6526F?style=for-the-badge&logo=apacheflink&logoColor=white)
+![Confluent](https://img.shields.io/badge/Confluent-FF5E1F?style=for-the-badge&logo=confluent&logoColor=white)
+![Neon](https://img.shields.io/badge/Neon-00E599?style=for-the-badge&logoColor=black)
+![SQLite](https://img.shields.io/badge/SQLite-003B57?style=for-the-badge&logo=sqlite&logoColor=white)
+
+
 **Autor: Vando Ramos**
 
 Desafio educacional IBM/DIO com Neon PostgreSQL, Confluent Cloud, Kafka e Flink.
