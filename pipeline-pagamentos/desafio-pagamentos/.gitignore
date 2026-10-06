@@ -7,3 +7,5 @@ alerts.db*
 .env
 .env.*
 !.env.example
+
+.runtime/
