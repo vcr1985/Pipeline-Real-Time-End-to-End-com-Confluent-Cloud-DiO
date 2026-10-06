@@ -1,8 +1,10 @@
--- Pipeline validado em 05/10/2026.
+-- Fluxo integrado validado no lote 900501-900504 em 06/10/2026.
 -- Catalog: desafio-final | Database: desafio-basic.
 -- Executar cada statement separadamente no Flink.
 -- Os INSERTs sao jobs continuos; evitar iniciar duplicados.
--- Enriquecimento temporal integrado ainda pendente.
+-- Reexecutar INSERTs pode reler a origem e duplicar sinks append.
+-- Conferir jobs ativos antes de iniciar; nao executar o arquivo inteiro.
+-- O corte de recuperacao abaixo deve ser revisto em um ambiente novo.
 
 CREATE TABLE `desafio-pagamentos.accounts-normalized` (
   id BIGINT NOT NULL,
@@ -57,6 +59,38 @@ FROM TO_CHANGELOG(
 );
 -- Este fluxo considera insercoes; updates e deletes nao entram.
 
+-- Enriquecimento temporal validado no lote 900501-900504.
+-- O historico de contas anterior ao inicio da normalizacao pode faltar.
+CREATE TABLE `desafio.payments.enriched` (
+  card_id BIGINT NOT NULL,
+  id BIGINT NOT NULL,
+  account_id BIGINT NOT NULL,
+  merchant_id BIGINT NOT NULL,
+  amount DECIMAL(15,2) NOT NULL,
+  event_time STRING NOT NULL,
+  event_ts TIMESTAMP_LTZ(3),
+  customer_id BIGINT,
+  status STRING,
+  WATERMARK FOR event_ts AS event_ts - INTERVAL '5' SECOND
+)
+DISTRIBUTED BY HASH(card_id) INTO 1 BUCKETS
+WITH (
+  'changelog.mode' = 'append',
+  'key.format' = 'avro-registry',
+  'value.format' = 'avro-registry',
+  'kafka.cleanup-policy' = 'delete',
+  'kafka.retention.time' = '7 d'
+);
+
+INSERT INTO `desafio.payments.enriched`
+SELECT t.card_id, t.id, t.account_id, t.merchant_id, t.amount,
+       t.event_time, t.event_ts, a.customer_id, a.status
+FROM `desafio-pagamentos.transaction-events` AS t
+LEFT JOIN `desafio-pagamentos.accounts-normalized`
+  FOR SYSTEM_TIME AS OF t.event_ts AS a
+ON t.account_id = a.id;
+-- customer_id e status enriquecem o fluxo, mas nao compoem o alerta atual.
+
 CREATE TABLE `desafio.fraud.detected` (
   card_id BIGINT,
   primeira_transacao BIGINT,
@@ -79,7 +113,17 @@ WITH (
 INSERT INTO `desafio.fraud.detected`
 SELECT card_id, primeira_transacao, ultima_transacao,
        account_id, quantidade, valor_total, inicio, fim
-FROM `desafio-pagamentos.transaction-events`
+FROM (
+  SELECT *
+  FROM `desafio.payments.enriched`
+  -- Corte usado na recuperacao de 06/10; nao e deduplicacao.
+  -- Exclui o historico contaminado, sem remover registros armazenados.
+  WHERE event_ts >= TO_TIMESTAMP_LTZ(
+    '2026-10-06T04:41:00.000Z',
+    'yyyy-MM-dd''T''HH:mm:ss.SSS''Z''',
+    'UTC'
+  )
+)
 MATCH_RECOGNIZE (
   PARTITION BY card_id
   ORDER BY event_ts

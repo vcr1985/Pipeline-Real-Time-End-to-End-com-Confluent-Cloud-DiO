@@ -74,3 +74,12 @@ As pendências do registro de 03/10 são históricas; usar esta atualização co
 - Schema cards: campo token com tag PCI, confirmado no JSON salvo.
 - Conector desafio-postgres-cdc conferido após as alterações, sem erro informado.
 - Tags classificam os dados; não criptografam nem bloqueiam acesso por si só.
+
+## Retomada — 06/10/2026
+- Lote 900501–900504: uma ocorrência por ID em transaction-events e payments.enriched.
+- Detector passou a ler payments.enriched, com corte em event_ts >= 2026-10-06 04:41:00 UTC para excluir o histórico contaminado.
+- Consumidor recebeu o alerta 900501–900503 no offset 11: três transações, total 60.00, intervalo de 20 segundos.
+- SQLite confirmou uma linha para a chave desse alerta.
+- Novas credenciais Kafka e Schema Registry testadas com sucesso.
+- Duplicações históricas continuam armazenadas; o corte temporal não as remove nem impede duplicação por futuras reexecuções.
+- Pendente: atualizar SQL versionado com o detector atual e documentar a recuperação.
